@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * Note: that these sources contain a few lines of Vojtech Pavlik's jstest.c 
+ * Note: that these sources contain a few lines of Vojtech Pavlik's jstest.c
  * example, which is GPL'd, too and available from:
  * http://atrey.karlin.mff.cuni.cz/~vojtech/joystick/
  */
@@ -61,9 +61,9 @@ int open_alsa_seq()
 	char client_name[32];
 	char port_name[48];
 	snd_seq_addr_t src;
-	
+
 	/* Create the sequencer port. */
-	
+
 	sprintf(client_name, "Joystick%i", joystick_no);
 	sprintf(port_name , "%s Output", client_name);
 
@@ -78,7 +78,7 @@ int open_alsa_seq()
 		SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ, SND_SEQ_PORT_TYPE_APPLICATION);
 
 	/* Init the event structure */
-	
+
 	snd_seq_ev_clear(&ev);
 	snd_seq_ev_set_source(&ev, src.port);
 	snd_seq_ev_set_subs(&ev);
@@ -94,15 +94,15 @@ int buttons;
 int open_joystick()
 {
 	char device[256];
-	char name[NAME_LENGTH] = "Unknown";	
-	
+	char name[NAME_LENGTH] = "Unknown";
+
 	sprintf(device, "/dev/js%i", joystick_no);
 
 	if ((joy_fd = open(device, O_RDONLY)) < 0) {
 		fprintf(stderr, "%s: ", TOOL_NAME); perror(device);
 		sprintf(device, "/dev/input/js%i", joystick_no);
-		
-		if ((joy_fd = open(device, O_RDONLY)) < 0) {	
+
+		if ((joy_fd = open(device, O_RDONLY)) < 0) {
 			fprintf(stderr, "%s: ", TOOL_NAME); perror(device);
 			exit(-3);
 		}
@@ -125,11 +125,11 @@ void loop()
 	int val_i;
 	int i;
 	val *values;
-	
+
 	values = calloc(axes, sizeof(val));
-	
+
 	puts("Axis -> MIDI controller mapping:");
-	
+
 	for (i=0; i<axes; i++) {
 		if (i<4) {
 			values[i].controller=controllers[i];
@@ -137,10 +137,10 @@ void loop()
 			values[i].controller=10+i;
 		}
 		printf("  %2i -> %3i\n", i, values[i].controller);
-		values[i].last_value=0;		
+		values[i].last_value=0;
 	}
-	
-	puts("Ready, entering loop - use Ctrl-C to exit.");	
+
+	puts("Ready, entering loop - use Ctrl-C to exit.");
 
 	while (1) {
 		if (read(joy_fd, &js, sizeof(struct js_event)) != sizeof(struct js_event)) {
@@ -148,34 +148,34 @@ void loop()
 			exit (-5);
 		}
 
-		switch(js.type & ~JS_EVENT_INIT) {		
+		switch(js.type & ~JS_EVENT_INIT) {
 			case JS_EVENT_BUTTON:
-				if (js.value) {			
+				if (js.value) {
 					current_channel=js.number+1;
-				
+
 					if (verbose) {
 						printf("Switched to MIDI channel %i.\n", current_channel);
 					}
 				}
 			break;
-			
+
 			case JS_EVENT_AXIS:
 				val_d=(double) js.value;
 				val_d+=SHRT_MAX;
 				val_d=val_d/((double) USHRT_MAX);
-				
+
 				if (cc14) {
 					val_d*=16383.0;
 				} else {
 					val_d*=127.0;
 				}
-			
+
 				val_i=(int) val_d;
-			
+
 				if (values[js.number].last_value!=val_i) {
 					if (cc14) {
 						ev.type = SND_SEQ_EVENT_CONTROL14;
-					} else {					
+					} else {
 						ev.type = SND_SEQ_EVENT_CONTROLLER;
 					}
 
@@ -184,10 +184,10 @@ void loop()
 					ev.data.control.param=values[js.number].controller;
 					ev.data.control.value=val_i;
 
-					
+
 					// snd_seq_ev_set_controller(&ev, current_channel, values[js.number].controller, val_i);
 					snd_seq_event_output_direct(seq_handle, &ev);
-					
+
 					if (verbose) {
 						printf("Sent controller %i with value: %i.\n", values[js.number].controller, val_i);
 					}
@@ -206,11 +206,11 @@ int main (int argc, char **argv)
 	for (i=0; i<4; i++) {
 		controllers[i]=10+i;
 	}
-	
+
 	while (1) {
 		int i=getopt(argc, argv, "vhrd:0:1:2:3:");
 		if (i==-1) break;
-		
+
 		switch (i) {
 			case '?':
 			case 'h':
@@ -222,7 +222,7 @@ int main (int argc, char **argv)
 				puts("\t-v verbose mode.");
 				exit(-2);
 			break;
-			
+
 			case '0':
 				controllers[0]=atoi(optarg);
 			break;
@@ -238,7 +238,7 @@ int main (int argc, char **argv)
 			case '3':
 				controllers[3]=atoi(optarg);
 			break;
-			
+
 			case 'v':
 				verbose=1;
 			break;
@@ -246,7 +246,7 @@ int main (int argc, char **argv)
 			case 'r':
 				cc14=1;
 			break;
-			
+
 			case 'd':
 				joystick_no=atoi(optarg);
 			break;
@@ -255,7 +255,7 @@ int main (int argc, char **argv)
 
 	open_joystick();
 	open_alsa_seq();
-	
+
 	loop();
 
 	return 0;
